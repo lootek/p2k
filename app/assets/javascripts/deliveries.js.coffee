@@ -21,7 +21,7 @@ ready = ->
   email_check = (email) ->
     domain = email.split("@")[1]
     re = /\S+@\S+/
-    allowedDomains = ["kindle.com", "free.kindle.com", "kindle.cn", "iduokan.com"]
+    allowedDomains = ["kindle.com", "free.kindle.com", "kindle.cn", "iduokan.com", "gmail.com"]
     if re.test(email)
       return true if allowedDomains.indexOf(domain) >= 0
     false

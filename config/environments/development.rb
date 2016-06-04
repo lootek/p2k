@@ -40,12 +40,12 @@ Rails.application.configure do
   config.action_mailer.smtp_settings = {
     :address              => Settings.DELIVERY_EMAIL_SMTP,
     :port                 => Settings.DELIVERY_EMAIL_PORT,
-    :user_name            => Settings.DELIVERY_EMAIL_ADDRESS,
-    :password             => Settings.DELIVERY_EMAIL_PASSWORD,
-    :authentication       => :login,
-    :ssl                  => true,
-    :tls                  => true,
-    :enable_starttls_auto => true
+    # :user_name            => Settings.DELIVERY_EMAIL_ADDRESS,
+    # :password             => Settings.DELIVERY_EMAIL_PASSWORD,
+    # :authentication       => :plain,
+    :ssl                  => false,
+    :tls                  => false,
+    :enable_starttls_auto => false
   }
 
 end

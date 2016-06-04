@@ -18,15 +18,17 @@ module CreateBook
 
 	  	#Create _document.yml
 	  	image = ::Rails.root.join('app', 'assets', 'images', 'p2k-masthead.jpg')
+
 	  	_document = 'doc_uuid: p2k.' + current_time + "\n" +
-	  	'title: Your P2K Articles' + "\n" +
-	  	'author: p2k.co' + "\n" +
-	  	'publisher: p2k.co' + "\n" +
-	  	'subject: Pocket Articles' + "\n" +
-	  	'date: "' + Time.now.strftime("%d-%m-%Y") +'"' + "\n" +
-	  	'masthead: ' + image.to_s + "\n" +
-	  	'cover: ' + image.to_s + "\n" +
-	  	'mobi_outfile: p2k.mobi'
+		  	'title: Your P2K Articles' + "\n" +
+		  	'author: p2k.co' + "\n" +
+		  	'publisher: p2k.co' + "\n" +
+		  	'subject: Pocket Articles' + "\n" +
+		  	'date: "' + Time.now.strftime("%d-%m-%Y") +'"' + "\n" +
+		  	'masthead: ' + image.to_s + "\n" +
+		  	'cover: ' + image.to_s + "\n" +
+		  	'mobi_outfile: p2k.mobi'
+
 	  	document_path = book_root.join('_document.yml')
 	  	File.open(document_path, "w+") do |f|
 	  		f.write(_document)
@@ -51,7 +53,7 @@ module CreateBook
 		end
 
 		# Create HTML files for the articles
-		self.create_articles(articles, articles_home, images)
+		self.create_articles(articles, book_root, images)
 
 		# Return the path to the book
 		return book_root
@@ -63,7 +65,7 @@ module CreateBook
 		articles.each do |article|
 			# Parse each article and then write them to an HTML file
 			File.open(articles_home.to_s+"/"+i.to_s+".html", "w") do |f|
-				article_html = self.parse_pocket article[1]['resolved_url']
+				article_html = self.parse_readability article[1]['resolved_url']
 				article_html = self.find_and_download_images(article_html, images_home)
 				f.write("<html>" +
 					"<head>" +
@@ -84,12 +86,13 @@ module CreateBook
 	# Parse the articles via Pocket Article API (Private Beta)
 	def self.parse_pocket(url)
 		begin
-			response = RestClient.get 'http://text.getpocket.com/v3/text', {:params => {
+			response = RestClient.post 'http://text.getpocket.com/v3/text', {:params => {
 				:url => url, :consumer_key => Settings.POCKET_CONSUMER_KEY,
 				:images => 1, :output => "json"
 				}}
 		rescue => e
-			Rails.logger.debug "Pocket Article View API failed! Switching to Readability...\n"
+			Rails.logger.debug "Pocket Article View API failed: " + e.message + "! Switching to Readability... (" + url + ")\n"
+
 			return self.parse_readability(url, e.message)
 		end
 		parsed = JSON.parse(response)
@@ -110,7 +113,7 @@ module CreateBook
 				}}
 		rescue => e
 			Rails.logger.debug "Both APIs failed on URL: " + url + "\n"
-			return "This article could not be fetched or is otherwise invalid.\n" + 
+			return "This article could not be fetched or is otherwise invalid.\n" +
 				"This is most likely an issue with fetching the article from the source server.\n" +
 				"URL: " + url + "\n" +
 				"Parsing was first tried via Diffbot API. Error message:\n" + error + "\n" +
@@ -153,7 +156,7 @@ module CreateBook
 		  		# Download image
 		  		image_url = save_to.join(image_name).to_s
 		  		image_from_src = open(src, :allow_redirections => :safe).read
-		  		open(image_url, 'wb') do |file|	  			
+		  		open(image_url, 'wb') do |file|
 	  				file << image_from_src
 		  		end
 

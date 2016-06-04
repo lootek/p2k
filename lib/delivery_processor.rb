@@ -34,7 +34,7 @@ module DeliveryProcessor
 
 		# Create the ebook
 		Dir.chdir(book_root)
-		created = Kindlerb.run book_root
+		created = Kindlerb.run(book_root, true)
 
 		# If the system call returns anything other than nil, the call was successful
 		successful = $?.exitstatus.nil? ? false : true
@@ -43,7 +43,7 @@ module DeliveryProcessor
 		if successful
 			Rails.logger.debug "BOOK CREATED SUCCESSFULLY!\n"
 			attachment = book_root.join("p2k.mobi")
-			MandrillMailer.send_email(delivery, attachment)
+			PocketMailer.delivery_email(delivery, attachment).deliver_now
 		else
 			Rails.logger.debug "ERROR: BOOK COULD NOT BE CREATED!\n"
 		end
