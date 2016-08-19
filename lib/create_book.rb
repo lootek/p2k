@@ -2,91 +2,114 @@ require 'json'
 require 'fileutils'
 require 'open-uri'
 require 'open_uri_redirections'
-require 'kindlerb'
+# require 'kindlerb'
+# require '/mnt/data/projects/kindlerb.github/lib/kindlerb.rb'
 require 'nokogiri'
+require 'uri'
 
 module CreateBook
 
 	# Create book files necessary for kindlerb
-	def self.create_files(articles, username)
-	  	current_time = Time.now.strftime("%d%m%Y%H%M")
-	  	name = current_time + "_" + username
+	def self.create_files(article, username)
+		puts article.inspect
 
-	  	# Create folder for the book
-	  	book_root = ::Rails.root.join('public', 'generated', name)
-	  	FileUtils.mkdir_p(book_root)
+		added_time = DateTime.strptime(article['time_added'], '%s')
 
-	  	#Create _document.yml
-	  	image = ::Rails.root.join('app', 'assets', 'images', 'p2k-masthead.jpg')
+		str_id = username + '_' + added_time.strftime('%Y-%m-%d_%H-%M-%S') + '_pocket_' + article['resolved_id']
+		dir_name = str_id
+		article_root = ::Rails.root.join('public', 'generated', dir_name)
 
-	  	_document = 'doc_uuid: p2k.' + current_time + "\n" +
-		  	'title: Your P2K Articles' + "\n" +
-		  	'author: p2k.co' + "\n" +
-		  	'publisher: p2k.co' + "\n" +
-		  	'subject: Pocket Articles' + "\n" +
-		  	'date: "' + Time.now.strftime("%d-%m-%Y") +'"' + "\n" +
-		  	'masthead: ' + image.to_s + "\n" +
-		  	'cover: ' + image.to_s + "\n" +
-		  	'mobi_outfile: p2k.mobi'
+		mobi_filename = article_root.to_s + '/' + str_id + '.mobi'
+		article_filename = article_root.to_s + '/' + str_id + '.html'
 
-	  	document_path = book_root.join('_document.yml')
-	  	File.open(document_path, "w+") do |f|
-	  		f.write(_document)
-	  	end
+		# Create folder for the book
+		FileUtils.mkdir_p(article_root)
 
 		# Create folder for the images
-		images = book_root.join('img')
-		FileUtils.mkdir_p(images)
+		images_dir = article_root.join('img')
+		FileUtils.mkdir_p(images_dir)
 
 		# Create folder for sections
-		sections = book_root.join('sections')
-		FileUtils.mkdir_p(sections)
+		# sections = article_root.join('sections')
+		# FileUtils.mkdir_p(sections)
 
 		# Create folder for the only section: Home
-		articles_home = sections.join('000')
-		FileUtils.mkdir_p(articles_home)
+		# articles_home = sections.join('000')
+		# FileUtils.mkdir_p(articles_home)
 
 		# Create _section.txt which contains the section title
-		_section = articles_home.join('_section.txt')
-		File.open(_section, "w+") do |f|
-			f.write("Home")
-		end
+		# _section = articles_home.join('_section.txt')
+		# File.open(_section, "w+") do |f|
+		# 	f.write("Home")
+		# end
+
+		#Create _document.yml
+		# image = ::Rails.root.join('app', 'assets', 'images_dir', 'p2k-masthead.jpg')
+
+		cover_img = ''
 
 		# Create HTML files for the articles
-		self.create_articles(articles, book_root, images)
+		File.open(article_filename, "w") do |f|
+
+			article_html = self.parse_pocket(article['resolved_url'])
+			article_html, main_img = self.find_and_download_images(article_html, images_dir)
+
+			cover_img = main_img
+
+			f.write("<html>" +
+				"<head>" +
+					'<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' +
+					"<title>" + article['given_title'] + "</title>" +
+				"</head>" +
+				"<body>" +
+					"<h1>" + article['resolved_title'] + "</h1>" +
+					"<header>" + article['excerpt'] + "</header>" +
+					"<article>" +
+						article_html.html_safe +
+					"</article>" +
+				"</body>" +
+				"</html>"
+			)
+		end
+
+		article_uri = URI(article['resolved_url'])
+
+		# _document = 'doc_uuid: pocket.' + article['resolved_id'] + "\n" +
+		  # 	'title: "' + article['resolved_title'] + '"' + "\n" +
+		  # 	'author: "' + article_uri.host + '"' + "\n" +
+		  # 	'publisher: "' + article_uri.host + '"' + "\n" +
+		  # 	'subject: "' + article['resolved_title'] + '"' + "\n" +
+		  # 	'date: "' + Time.now.strftime("%d-%m-%Y") + '"' + "\n" +
+		  # 	'masthead: "' + image.to_s + '"' + "\n" +
+		  # 	'cover: "' + image.to_s + '"' + "\n" +
+		  # 	'mobi_outfile: "' + mobi_filename + '"' + "\n"
+
+		# document_path = article_root.join('_document.yml')
+		# File.open(document_path, "w+") do |f|
+		# 	f.write(_document)
+		# end
+
+		command = "ebook-convert " + article_filename + " " + mobi_filename +
+					" --output-profile kindle" +
+					" --prefer-metadata-cover" +
+					" --title '" + article['resolved_title'] + "'" +
+					" --pubdate '" + added_time.strftime("%d-%m-%Y") + "'" +
+					" --publisher '" + article_uri.host + "'" +
+					" --authors '" + article_uri.host + "'"
+					" --tags '" + article_uri.host + "," + "pocket" + "'"
+
+		if not cover_img.blank?
+			command = command + " --cover '" + cover_img + "'"
+		end
 
 		# Return the path to the book
-		return book_root
-	end
-
-	# Create HTML versions of the articles
-	def self.create_articles(articles, articles_home, images_home)
-		i = 1
-		articles.each do |article|
-			# Parse each article and then write them to an HTML file
-			File.open(articles_home.to_s+"/"+i.to_s+".html", "w") do |f|
-				article_html = self.parse_readability article[1]['resolved_url']
-				article_html = self.find_and_download_images(article_html, images_home)
-				f.write("<html>" +
-					"<head>" +
-					'<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' +
-					"<title>" + article[1]['resolved_title'] + "</title>" +
-					"</head>" +
-					"<body>" +
-					"<h1>" + article[1]['resolved_title'] + "</h1>" +
-					article_html.html_safe +
-					"</body>" +
-					"</html>"
-					)
-				i += 1
-			end
-		end
+		return article_root, command, mobi_filename
 	end
 
 	# Parse the articles via Pocket Article API (Private Beta)
 	def self.parse_pocket(url)
 		begin
-			response = RestClient.post 'http://text.getpocket.com/v3/text', {:params => {
+			response = RestClient.get 'http://text.getpocket.com/v3/text', {:params => {
 				:url => url, :consumer_key => Settings.POCKET_CONSUMER_KEY,
 				:images => 1, :output => "json"
 				}}
@@ -146,35 +169,51 @@ module CreateBook
 	# Find, download and replace paths of images in the created book to enable local access
 	def self.find_and_download_images(html, save_to)
 
-	  	# Find all images in a given HTML
-	  	Nokogiri::HTML(html).xpath("//img/@src").each do |src|
-	  		begin
-		  		src = src.to_s
-		  		# Make image name SHA1 hash (only alphanumeric chars) and its extension .jpg
-		  		image_name = Digest::SHA1.hexdigest(src) << '.jpg'
+		main_img = ''
 
-		  		# Download image
-		  		image_url = save_to.join(image_name).to_s
-		  		image_from_src = open(src, :allow_redirections => :safe).read
-		  		open(image_url, 'wb') do |file|
-	  				file << image_from_src
-		  		end
+		# Find all images in a given HTML
+		Nokogiri::HTML(html).xpath("//img/@src").each do |src|
+			begin
+				src = src.to_s
+				# Make image name SHA1 hash (only alphanumeric chars) and its extension .jpg
+				image_name = Digest::SHA1.hexdigest(src) << '.jpg'
 
-			  	# Resize and make it greyscale
-			  	command = 'convert ' + image_url + ' -compose over -background white -flatten -resize "400x267>" -alpha off -colorspace Gray ' + image_url
-			  	created = system command
+				# Download image
+				image_url = save_to.join(image_name).to_s
 
-			  	# Replace the image URL with downloaded local version
-			  	html = html.gsub(src, "../../img/" + image_name)
+				open(image_url, 'wb') do |file|
+					image_from_src = open(src, :allow_redirections => :safe).read
+					file << image_from_src
+				end
+
+				# Resize and make it greyscale
+				# command = 'convert ' + image_url + ' -compose over -background white -flatten -resize "400x267>" -alpha off -colorspace Gray ' + image_url
+
+				# convert "$img" -compose over -background white -flatten -resize "640x640>" -alpha off -colorspace Gray "conv_$img"
+				command = 'convert ' + image_url + ' -compose over -background white -flatten -resize "640x640>" -alpha off -colorspace Gray ' + image_url
+				created = system command
+				Rails.logger.debug "imagick convert result: " + created.inspect
+
+				if main_img.blank?
+					main_img = image_url
+
+					# convert "conv_$img" -background gray -gravity center -extent 400x640 "cover_$img"
+					command = 'convert ' + image_url + ' -background gray -gravity center -extent 400x640 ' + image_url
+					created = system command
+					Rails.logger.debug "imagick convert result: " + created.inspect
+				end
+
+				# Replace the image URL with downloaded local version
+				html = html.gsub(src, "img/" + image_name)
 			rescue => e
-  				# If the image URL cannot be fetched, print an error message
-  				puts "IMAGE CANNOT BE DOWNLOADED!: " + e.message + "\n Image URL: " + src
-  				next
-  			end
+				# If the image URL cannot be fetched, print an error message
+				puts "IMAGE CANNOT BE DOWNLOADED!: " + e.message + "\n Image URL: " + src
+				next
+			end
 		end
 
-	  	# Return the new html
-	  	return html
+		# Return the new html
+		return html, main_img
 	end
 
 end
