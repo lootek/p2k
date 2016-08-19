@@ -39,7 +39,7 @@ gem 'sdoc', group: :doc
 gem 'tzinfo-data', platforms: [:mingw, :mswin]
 gem 'semantic-ui-sass'
 gem 'rest-client'
-gem 'kindlerb'
+# gem 'kindlerb'
 gem 'certified'
 gem 'open_uri_redirections'
 gem 'whenever'
@@ -49,3 +49,7 @@ gem 'mandrill-api'
 gem 'thin', group: :development
 
 gem 'coveralls', require: false
+
+# kindlerb's
+# gem 'nokogiri'
+# gem 'mustache'
