@@ -64,11 +64,10 @@ module DeliveryProcessor
 				Rails.logger.debug "Error: Kindle file could not be created!\n"
 			end
 
-			counter+=1
 			mail_articles.push(article[1])
 
 			# Email ebooks in packs of 25
-			if counter % 25 == 0
+			if counter > 0 and counter % 25 == 0
 				PocketMailer.delivery_email(delivery, mail_attachments, mail_articles).deliver_now
 
 				delivery_log = "Recipient: " + delivery.user.username + "\n" +
@@ -76,10 +75,11 @@ module DeliveryProcessor
 							   	"Delivery created at " + Time.now.to_s + "\n"
 				Rails.logger.debug delivery_log
 
-				mail_attachments ||= []
-				mail_articles ||= []
+				mail_attachments.clear
+				mail_articles.clear
 			end
 
+			counter+=1
 		end
 
 		# Email the remaining ebooks (if any)
