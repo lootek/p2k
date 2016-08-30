@@ -64,7 +64,7 @@ module DeliveryProcessor
 				Rails.logger.debug "Error: Kindle file could not be created!\n"
 			end
 
-			counter++
+			counter+=1
 			mail_articles.push(article[1])
 
 			# Email ebooks in packs of 25
@@ -73,7 +73,7 @@ module DeliveryProcessor
 
 				delivery_log = "Recipient: " + delivery.user.username + "\n" +
 							   	"Kindle Email: " + delivery.kindle_email + "\n" +
-							   	"Delivery created at " + Time.now.to_s + "\n" +
+							   	"Delivery created at " + Time.now.to_s + "\n"
 				Rails.logger.debug delivery_log
 
 				mail_attachments ||= []
@@ -88,7 +88,7 @@ module DeliveryProcessor
 
 			delivery_log = "Recipient: " + delivery.user.username + "\n" +
 						   	"Kindle Email: " + delivery.kindle_email + "\n" +
-						   	"Delivery created at " + Time.now.to_s + "\n" +
+						   	"Delivery created at " + Time.now.to_s + "\n"
 			Rails.logger.debug delivery_log
 		end
 
