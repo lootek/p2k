@@ -33,50 +33,64 @@ module DeliveryProcessor
 
 		# Create file tree from Pocket articles
 
-		attachments ||= []
+		mail_attachments ||= []
+		mail_articles ||= []
+		counter = 0
 
 		articles.each do |article|
-			article_root, command, mobi_filename = CreateBook.create_files(article[1], delivery.user.username)
 
-			# article_root = '/mnt/data/projects/p2k.github/public/generated/080520162318_lootek'
-
-			# Create the ebook
+			# Create the ebook from article parsed using readability
+			article_root, command, mobi_filename = CreateBook.create_files(article[1], delivery.user.username, "readability")
 			Dir.chdir(article_root)
-
-			# created = Kindlerb.run(article_root, true)
-			# Rails.logger.debug "Kindlerb result: " + created.inspect
-			# Rails.logger.debug created
-
 			Rails.logger.debug "ebook-convert command: " + command.inspect
 			created = system command
 			Rails.logger.debug "ebook-convert result: " + created.inspect
-			Rails.logger.debug created
+
+			# Create the ebook from article parsed using pocket
+			article_root, command, mobi_filename = CreateBook.create_files(article[1], delivery.user.username, "pocket")
+			Dir.chdir(article_root)
+			Rails.logger.debug "ebook-convert command: " + command.inspect
+			created = system command
+			Rails.logger.debug "ebook-convert result: " + created.inspect
 
 			# If the system call returns anything other than nil, the call was successful
 			successful = $?.exitstatus.nil? ? false : true
 
-			# Email the ebook
 			if successful
 				Rails.logger.debug "Kindle file created successfully!\n"
 				art_attachment = mobi_filename
-				attachments.push(art_attachment)
+				mail_attachments.push(art_attachment)
 			else
 				Rails.logger.debug "Error: Kindle file could not be created!\n"
 			end
 
-			# Delete the ebook
-			# FileUtils.rm_rf(article_root)
+			counter++
+			mail_articles.push(article[1])
+
+			# Email ebooks in packs of 25
+			if counter % 25 == 0
+				PocketMailer.delivery_email(delivery, mail_attachments, mail_articles).deliver_now
+
+				delivery_log = "Recipient: " + delivery.user.username + "\n" +
+							   	"Kindle Email: " + delivery.kindle_email + "\n" +
+							   	"Delivery created at " + Time.now.to_s + "\n" +
+				Rails.logger.debug delivery_log
+
+				mail_attachments ||= []
+				mail_articles ||= []
+			end
+
 		end
 
-		PocketMailer.delivery_email(delivery, attachments, articles).deliver_now
+		# Email the remaining ebooks (if any)
+		if counter % 25 != 0
+			PocketMailer.delivery_email(delivery, mail_attachments, mail_articles).deliver_now
 
-		delivery_log = "----------------\n" +
-					   "Delivery processed!\n" +
-					   "Recipient: " + delivery.user.username + "\n" +
-					   "Kindle Email: " + delivery.kindle_email + "\n" +
-					   "Delivery created at " + Time.now.to_s + "\n" +
-					   "----------------\n"
-		Rails.logger.debug delivery_log
+			delivery_log = "Recipient: " + delivery.user.username + "\n" +
+						   	"Kindle Email: " + delivery.kindle_email + "\n" +
+						   	"Delivery created at " + Time.now.to_s + "\n" +
+			Rails.logger.debug delivery_log
+		end
 
 	end
 

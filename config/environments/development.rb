@@ -48,4 +48,6 @@ Rails.application.configure do
     :enable_starttls_auto => false
   }
 
+  # config.log_level = :info
+
 end

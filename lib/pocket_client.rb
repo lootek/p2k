@@ -18,7 +18,17 @@ module PocketClient
 	end
 
 	def self.get_articles(access_token, count)
-		response = RestClient.post "https://getpocket.com/v3/get", { 'consumer_key' => Settings.POCKET_CONSUMER_KEY, 'access_token' => access_token, 'count' => count, 'detailType' => 'simple' }.to_json, {"Content-Type" => "application/json; charset=UTF-8", "X-Accept" => "application/json"}
+
+		response = RestClient.post "https://getpocket.com/v3/get", {
+			'consumer_key' => Settings.POCKET_CONSUMER_KEY,
+			'access_token' => access_token,
+			'count' => count,
+			'detailType' => 'simple'
+		}.to_json, {
+			"Content-Type" => "application/json; charset=UTF-8",
+			"X-Accept" => "application/json"
+		}
+
 		return JSON.parse(response)['list']
 	end
 
@@ -28,8 +38,14 @@ module PocketClient
 		articles.each do |a|
 			actions.push({"action" => "archive", "item_id" => a[1]['item_id']})
 		end
-		response = RestClient.post "https://getpocket.com/v3/send", :consumer_key => Settings.POCKET_CONSUMER_KEY, :access_token => access_token, :actions => actions.to_json
+
+		response = RestClient.post "https://getpocket.com/v3/send",
+			:consumer_key => Settings.POCKET_CONSUMER_KEY,
+			:access_token => access_token,
+			:actions => actions.to_json
+
 		archived = JSON.parse(response)['status']
+
 		if archived == 1
 			return true
 		else

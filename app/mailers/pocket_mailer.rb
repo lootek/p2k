@@ -8,10 +8,10 @@ class PocketMailer < ActionMailer::Base
 		@articles_info = ''
 		articles.each do |article|
 			@articles_info = @articles_info + "\n\n" +
-					article[1]['resolved_title'] + "\n" +
-					article[1]['resolved_url'] + "\n" +
-					DateTime.strptime(article[1]['time_added'], '%s').strftime('%Y-%m-%d_%H-%M-%S') + "\n" +
-					article[1]['resolved_id']
+					article['resolved_title'] + "\n" +
+					article['resolved_url'] + "\n" +
+					DateTime.strptime(article['time_added'], '%s').strftime('%Y-%m-%d_%H-%M-%S') + "\n" +
+					article['resolved_id']
 		end
 
 		files.each do |file|
