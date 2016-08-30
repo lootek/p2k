@@ -83,7 +83,7 @@ module DeliveryProcessor
 		end
 
 		# Email the remaining ebooks (if any)
-		if counter % 25 != 0
+		if mail_attachments.length > 0
 			PocketMailer.delivery_email(delivery, mail_attachments, mail_articles).deliver_now
 
 			delivery_log = "Recipient: " + delivery.user.username + "\n" +
