@@ -22,6 +22,11 @@ module CreateBook
 		article_filename 	= article_root.to_s + '/' + str_id + '_' + parse_engine + '.html'
 
 		images_dir = article_root.join('img')
+
+		if Dir.exist?(images_dir)
+			return false, "", false
+		end
+
 		FileUtils.mkdir_p(images_dir)
 
 		cover_img = ''

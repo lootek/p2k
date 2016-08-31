@@ -35,26 +35,36 @@ module DeliveryProcessor
 
 		mail_attachments ||= []
 		mail_articles ||= []
-		counter = 0
 
 		articles.each do |article|
 
 			# Create the ebook from article parsed using readability
 			article_root, command, mobi_filename = CreateBook.create_files(article[1], delivery.user.username, "readability")
-			Dir.chdir(article_root)
-			Rails.logger.debug "ebook-convert command: " + command.inspect
-			created = system command
-			Rails.logger.debug "ebook-convert result: " + created.inspect
+			Rails.logger.debug("readability parse result: " + (!article_root ? "false" : article_root.to_s) + ", " + command + ", " + (!mobi_filename ? "false" : mobi_filename.to_s))
+			if article_root != false
+				Dir.chdir(article_root)
+				Rails.logger.debug "ebook-convert command: " + command.inspect
+				created = system command
+				Rails.logger.debug "ebook-convert result: " + created.inspect
+			end
 
 			# Create the ebook from article parsed using pocket
 			article_root, command, mobi_filename = CreateBook.create_files(article[1], delivery.user.username, "pocket")
-			Dir.chdir(article_root)
-			Rails.logger.debug "ebook-convert command: " + command.inspect
-			created = system command
-			Rails.logger.debug "ebook-convert result: " + created.inspect
+			Rails.logger.debug("pocket parse result: " + (!article_root ? "false" : article_root.to_s) + ", " + command + ", " + (!mobi_filename ? "false" : mobi_filename.to_s))
+			if article_root != false
+				Dir.chdir(article_root)
+				Rails.logger.debug "ebook-convert command: " + command.inspect
+				created = system command
+				Rails.logger.debug "ebook-convert result: " + created.inspect
+			end
 
 			# If the system call returns anything other than nil, the call was successful
 			successful = $?.exitstatus.nil? ? false : true
+
+			if article_root == false
+				Rails.logger.info "Already processed, skipping..."
+				next
+			end
 
 			if successful
 				Rails.logger.debug "Kindle file created successfully!\n"
@@ -67,7 +77,7 @@ module DeliveryProcessor
 			mail_articles.push(article[1])
 
 			# Email ebooks in packs of 25
-			if counter > 0 and counter % 25 == 0
+			if mail_attachments.length == 25
 				PocketMailer.delivery_email(delivery, mail_attachments, mail_articles).deliver_now
 
 				delivery_log = "Recipient: " + delivery.user.username + "\n" +
@@ -79,7 +89,6 @@ module DeliveryProcessor
 				mail_articles.clear
 			end
 
-			counter+=1
 		end
 
 		# Email the remaining ebooks (if any)
