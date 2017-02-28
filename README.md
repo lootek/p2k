@@ -87,6 +87,8 @@ This application uses [ImageMagick] (http://www.imagemagick.org/script/binary-re
 ### 3. Parsing Articles
 I'm using [Diffbot Article API](http://www.diffbot.com/products/automatic/article/) and [Readability Parser API](https://readability.com/developers/api/parser) interchangeably to parse articles properly before sending them to Kindle. Make sure you get your API keys and put them in your `config/application.yml` as shown above.
 
+An important note here: contrary to the original p2k, I'm using [Pocket Article View API](https://getpocket.com/developer/docs/v3/article-view) *only*. It's a private closed API, which can be asked for through an email to the Pocket Team.
+
 ### 4. Cron jobs for deliveries
 This application uses [whenever] (https://github.com/javan/whenever) gem to run cron jobs for deliveries.
 You need to run the command `whenever -i` inside your application directory in order to update your crontab file and start deliveries.
