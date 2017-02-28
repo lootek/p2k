@@ -38,16 +38,6 @@ module DeliveryProcessor
 
 		articles.each do |article|
 
-			# Create the ebook from article parsed using readability
-			article_root, command, mobi_filename = CreateBook.create_files(article[1], delivery.user.username, "readability")
-			Rails.logger.debug("readability parse result: " + (!article_root ? "false" : article_root.to_s) + ", " + command + ", " + (!mobi_filename ? "false" : mobi_filename.to_s))
-			if article_root != false
-				Dir.chdir(article_root)
-				Rails.logger.debug "ebook-convert command: " + command.inspect
-				created = system command
-				Rails.logger.debug "ebook-convert result: " + created.inspect
-			end
-
 			# Create the ebook from article parsed using pocket
 			article_root, command, mobi_filename = CreateBook.create_files(article[1], delivery.user.username, "pocket")
 			Rails.logger.debug("pocket parse result: " + (!article_root ? "false" : article_root.to_s) + ", " + command + ", " + (!mobi_filename ? "false" : mobi_filename.to_s))
