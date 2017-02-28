@@ -76,8 +76,10 @@ module DeliveryProcessor
 
 			mail_articles.push(article[1])
 
-			# Email ebooks in packs of 25
-			if mail_attachments.length == 25
+			# Email ebooks in packs of n
+			# n = 25
+			n = 10
+			if mail_attachments.length == n
 				PocketMailer.delivery_email(delivery, mail_attachments, mail_articles).deliver_now
 
 				delivery_log = "Recipient: " + delivery.user.username + "\n" +
