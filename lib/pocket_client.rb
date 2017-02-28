@@ -22,8 +22,32 @@ module PocketClient
 		response = RestClient.post "https://getpocket.com/v3/get", {
 			'consumer_key' => Settings.POCKET_CONSUMER_KEY,
 			'access_token' => access_token,
+
+			# 'state'			unread|archive|all
+
+			# 'favorite'		0|1
+
+			# 'tag'				tagname|_untagged_
+
+			# 'contentType'	article|video|image
+
+			# 'sort'				newest|oldest|title|site
+			'sort' => 'newest',
+
+			# 'detailType'		simple|complete
+			'detailType' => 'simple',
+
+			# 'search'			Only return items whose title or url contain the search string
+
+			# 'domain'			Only return items from a particular domain
+
+			# 'since'			Only return items modified since the given since unix timestamp
+
+			# 'count'			Only return count number of items
 			'count' => count,
-			'detailType' => 'simple'
+
+			# 'offset'			Used only with count; start returning from offset position of results
+
 		}.to_json, {
 			"Content-Type" => "application/json; charset=UTF-8",
 			"X-Accept" => "application/json"
