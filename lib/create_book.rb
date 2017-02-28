@@ -11,7 +11,12 @@ module CreateBook
 
 	# Create book files
 	def self.create_files(article, pocket_username, parse_engine)
-		puts article.inspect
+		Rails.logger.debug article.inspect
+
+		if not article['resolved_id']
+			Rails.logger.debug "============================ ERROR/SKIPPING ============================"
+			return false, "", false
+		end
 
 		added_time = DateTime.strptime(article['time_added'], '%s')
 
@@ -31,13 +36,27 @@ module CreateBook
 
 		cover_img = ''
 
+		article_url = article['resolved_url']
+		if not article_url
+			article_url = article['given_url']
+		end
+
+		article_title = article['resolved_title']
+		if not article_title
+			article_title = article['given_title']
+		end
+
 		# Create HTML files for the articles
 		File.open(article_filename, "w") do |f|
 
 			if parse_engine == "pocket"
-				article_html = self.parse_pocket(article['resolved_url'])
+				article_html = self.parse_pocket(article_url)
 			elsif parse_engine == "readability"
-				article_html = self.parse_readability(article['resolved_url'])
+				article_html = self.parse_readability(article_url)
+			end
+
+			if article_html.empty?
+				next
 			end
 
 			article_html, main_img = self.find_and_download_images(article_html, images_dir)
@@ -47,25 +66,34 @@ module CreateBook
 			f.write("<html>" +
 				"<head>" +
 					'<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' +
-					"<title>" + article['given_title'] + "</title>" +
+					"<title>" + article_title + "</title>" +
 				"</head>" +
 				"<body>" +
-					"<h1>" + article['resolved_title'] + "</h1>" +
-					"<header>" + article['excerpt'] + "</header>" +
+
+					"<header>" +
+						"<h1>" + article_title + "</h1>" +
+					 	"<h2><a href=\"" + article_url + "\" target=\"_blank\">" + article_url + "</a></h2>" +
+					"</header>" +
+
+					"<section>" +
+						article['excerpt'] +
+					"</section>" +
+
 					"<article>" +
 						article_html.html_safe +
 					"</article>" +
+
 				"</body>" +
 				"</html>"
 			)
 		end
 
-		article_uri = URI(article['resolved_url'])
+		article_uri = URI(article_url)
 
 		command = "ebook-convert " + article_filename + " " + mobi_filename +
 					" --output-profile kindle" +
 					" --prefer-metadata-cover" +
-					" --title '" + article['resolved_title'] + "'" +
+					" --title '" + article_title + "'" +
 					" --pubdate '" + added_time.strftime("%d-%m-%Y") + "'" +
 					" --publisher '" + article_uri.host + "'" +
 					" --authors '" + article_uri.host + "'"
@@ -114,7 +142,7 @@ module CreateBook
 			}
 
 		rescue => e
-			mesg = "Readability API failed on URL: " + url + " with error: " + e.message + "\n"
+			mesg = "Readability API failed on URL: " + url + " with error: " + e.message + "\n\n" + "Let's try the new https://mercury.postlight.com/web-parser/"
 
 			Rails.logger.debug mesg
 			return mesg
