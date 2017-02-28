@@ -46,4 +46,5 @@ Thumbs.db
 
 # Don't add generated contents of public folder
 /public/generated/*
+/public/generated.tests/*
 /public/assets/*
