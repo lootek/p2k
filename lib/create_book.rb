@@ -51,8 +51,6 @@ module CreateBook
 
 			if parse_engine == "pocket"
 				article_html = self.parse_pocket(article_url)
-			elsif parse_engine == "readability"
-				article_html = self.parse_readability(article_url)
 			end
 
 			if article_html.empty?
@@ -121,7 +119,7 @@ module CreateBook
 			}
 
 		rescue => e
-			mesg = "Pocket Article View API failed: " + e.message + "! Switching to Readability... (" + url + ")\n"
+			mesg = "Pocket Article View API failed: " + e.message + "\n"
 
 			Rails.logger.debug mesg
 			return mesg
@@ -130,47 +128,6 @@ module CreateBook
 		parsed = JSON.parse(response)
 		return parsed['article']
 	end
-
-	# Parse the articles via Readability API
-	def self.parse_readability(url)
-		begin
-			response = RestClient.get 'https://readability.com/api/content/v1/parser', {
-				:params => {
-					:url => url,
-					:token => Settings.READABILITY_PARSER_KEY
-				}
-			}
-
-		rescue => e
-			mesg = "Readability API failed on URL: " + url + " with error: " + e.message + "\n\n" + "Let's try the new https://mercury.postlight.com/web-parser/"
-
-			Rails.logger.debug mesg
-			return mesg
-		end
-
-		parsed = JSON.parse(response)
-		return parsed['content']
-	end
-
-	# Parse the articles via Diffbot API
-	# def self.parse_diffbot(url)
-	# 	begin
-	# 		response = RestClient.get 'https://api.diffbot.com/v3/article', {:params => {
-	# 			:url => url, :token => Settings.DIFFBOT_API_KEY
-	# 			}}
-	# 	rescue => e
-	# 		Rails.logger.debug "Diffbot API failed! Switching to Readability...\n"
-	# 		return self.parse_readability(url, e.message)
-	# 	end
-	# 	parsed = JSON.parse(response)
-
-	# 	# If there is an error in the response, switch to Readability API
-	# 	if parsed['error']
-	# 		return self.parse_readability(url, parsed['error'])
-	# 	else
-	# 		return parsed['objects'][0]['html']
-	# 	end
-	# end
 
 	# Find, download and replace paths of images in the created book to enable local access
 	def self.find_and_download_images(html, save_to)
